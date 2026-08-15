@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>gpuq — GPU 任务看板 · Live Demo</title>
+<title>gpuq — GPU 任务看板</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
 </head>
@@ -13,7 +13,7 @@
   <span><a href="https://github.com/Weidows/gpuq" target="_blank" rel="noopener">← Back to repository</a></span>
 </div>
 <header class="topbar">
-  <div class="brand">🎛️ gpuq <span class="tag">GPU 排队调度</span></div>
+  <div class="brand">🎛️ gpuq <span class="tag">GPU 任务看板</span></div>
   <div class="topbar-right">
     <span id="host-badge" class="badge" title="server">connecting…</span>
     <span id="host-metrics-badge" class="badge badge-muted" title="host net/disk/cpu metrics (needs psutil)">host metrics: …</span>
@@ -29,26 +29,11 @@
 <div id="error-banner" class="banner banner-warn hidden"></div>
 
 <main>
-  <section id="gpu-cards" class="gpu-cards"></section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <h2>📈 GPU / 宿主机指标</h2>
-      <div class="range-buttons" id="range-buttons">
-        <button data-range="1h" class="btn btn-sm active">1h</button>
-        <button data-range="6h" class="btn btn-sm">6h</button>
-        <button data-range="24h" class="btn btn-sm">24h</button>
-        <button data-range="7d" class="btn btn-sm">7d</button>
-      </div>
-    </div>
-    <div id="charts"></div>
-    <div id="charts-empty" class="muted hidden">暂无语标数据 —— 指标采样线程尚未写入任何点（检查 nvidia-smi 是否可用）。</div>
-  </section>
-
   <section class="panel">
     <div class="panel-head">
       <h2>📋 任务</h2>
       <div class="head-actions">
+        <span id="counts" class="muted" style="font-size:12px"></span>
         <button id="btn-refresh" class="btn btn-sm">↻ 刷新</button>
         <button id="btn-new" class="btn btn-sm btn-primary">+ 新建任务</button>
       </div>
@@ -61,16 +46,18 @@
       <button data-status="failed" class="tab">失败</button>
       <button data-status="cancelled" class="tab">已取消</button>
     </div>
-    <div class="table-wrap">
-      <table id="task-table">
-        <thead><tr>
-          <th>ID</th><th>状态</th><th>GPU</th><th>优先级</th><th>显存(预估)</th>
-          <th>时长</th><th>项目</th><th>用户</th><th>版本</th><th>命令</th><th></th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div id="tasks-empty" class="muted">暂无任务。用 <code>gpuq submit --project demo --user you --vram 2000 -- python main.py</code> 或右上角「新建任务」提交一个。</div>
+  </section>
+
+  <section id="board" class="board">
+    <div id="rail" class="rail hidden"></div>
+    <div id="cards" class="cards"></div>
+    <aside id="detail" class="detail hidden">
+      <div class="detail-head">
+        <h3 id="detail-title">任务详情</h3>
+        <button id="btn-detail-close" class="btn btn-sm">✕ 返回</button>
+      </div>
+      <div id="detail-body"></div>
+    </aside>
   </section>
 </main>
 
@@ -103,17 +90,6 @@
         <button type="submit" class="btn btn-primary">提交</button>
       </div>
     </form>
-  </div>
-</div>
-
-<!-- task detail modal -->
-<div id="modal-detail" class="modal hidden">
-  <div class="modal-card modal-wide">
-    <div class="modal-head">
-      <h3 id="detail-title">任务详情</h3>
-      <button class="btn btn-sm modal-close" data-close="modal-detail">✕</button>
-    </div>
-    <div id="detail-body"></div>
   </div>
 </div>
 
