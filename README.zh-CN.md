@@ -43,13 +43,13 @@ WebUI 是纯静态单页应用。GitHub Pages 上的 [在线演示](https://weid
 
 ## 安装
 
-### pip（PyPI 上叫 `gpu-q`）
+### pip（PyPI 上叫 `gpuqu`）
 
-> PyPI 上的 `gpuq` 名字已被占用，所以发行包名是 **`gpu-q`**；安装后命令和导入包仍是 `gpuq`。
+> PyPI 上的 `gpuq` 名字已被占用，所以发行包名是 **`gpuqu`**；安装后命令和导入包仍是 `gpuq`。
 
 ```bash
-pip install gpu-q                          # 核心，零依赖
-pip install "gpu-q[host]"                  # + psutil → 宿主机 net/disk/cpu 曲线
+pip install gpuqu                          # 核心，零依赖
+pip install "gpuqu[host]"                  # + psutil → 宿主机 net/disk/cpu 曲线
 ```
 
 安装后直接有 `gpuq` 命令：
@@ -61,7 +61,7 @@ gpuq serve                      # 启动服务（默认 http://127.0.0.1:8765）
 或从源码安装最新版（包布局相同）：
 
 ```bash
-pip install "gpu-q @ git+https://github.com/Weidows/gpuq.git"
+pip install "gpuqu @ git+https://github.com/Weidows/gpuq.git"
 ```
 
 或者拉源码免安装直接跑：`python -m gpuq.cli serve`（Python ≥ 3.10）。
@@ -238,7 +238,7 @@ pip install -e . && python tests/smoke.py    # 本机冒烟（无 GPU 设 GPUQ_S
 - **发包**（`.github/workflows/release.yml`，打 `v*` tag 触发）：
   - GitHub Release 资产：wheel + sdist + .deb
   - ghcr.io 镜像：`ghcr.io/weidows/gpuq:<tag>` + `latest`
-  - PyPI：以 `gpu-q` 发行名发布（已配置 `PYPI_ENABLED` 变量，会执行）
+  - PyPI：以 `gpuqu` 发行名发布（已配置 `PYPI_ENABLED` 变量，会执行）
 - **GitHub Pages**（`.github/workflows/pages.yml`，`docs/**` 变更触发）：把静态 WebUI 演示部署到 `https://weidows.github.io/gpuq/`
 
 ### 目录结构
@@ -256,7 +256,7 @@ gpuq/
 ## 已知限制与降级
 
 - `nvidia-smi -pl`（功耗上限）需要 root / 管理员权限，失败仅打警告、不中断任务
-- 宿主机 net/disk/cpu 曲线需要 `psutil`（`pip install "gpu-q[host]"`），缺失时 WebUI 对应图表置灰，其余功能不受影响
+- 宿主机 net/disk/cpu 曲线需要 `psutil`（`pip install "gpuqu[host]"`），缺失时 WebUI 对应图表置灰，其余功能不受影响
 - Chart.js 优先加载本地 vendor 文件（已打包进 wheel），缺失时回退 CDN
 - 单机多 GPU 天然支持（按 gpu_id 独立调度）；跨机联邦不在本期范围
 - 无 GPU 环境（如 CI）可用 `GPUQ_FAKE_GPU=1` 跑通调度/指标链路做冒烟

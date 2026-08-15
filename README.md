@@ -45,14 +45,14 @@ repo (the 404 there is harmless).
 
 ## Installation
 
-### pip (PyPI: `gpu-q`)
+### pip (PyPI: `gpuqu`)
 
 > The plain `gpuq` name is taken on PyPI, so the distribution is published as
-> **`gpu-q`** there. The installed console command and import package stay `gpuq`.
+> **`gpuqu`** there. The installed console command and import package stay `gpuq`.
 
 ```bash
-pip install gpu-q                          # core, zero deps
-pip install "gpu-q[host]"                  # + psutil → host net/disk/cpu charts
+pip install gpuqu                          # core, zero deps
+pip install "gpuqu[host]"                  # + psutil → host net/disk/cpu charts
 ```
 
 This installs the `gpuq` console command:
@@ -64,7 +64,7 @@ gpuq serve                      # start the server (default http://127.0.0.1:876
 Or install the latest from source (same package layout):
 
 ```bash
-pip install "gpu-q @ git+https://github.com/Weidows/gpuq.git"
+pip install "gpuqu @ git+https://github.com/Weidows/gpuq.git"
 ```
 
 Or run from a checkout without installing: `python -m gpuq.cli serve` (Python ≥ 3.10).
@@ -247,7 +247,7 @@ pip install -e . && python tests/smoke.py      # local smoke test (set GPUQ_SMOK
   install the wheel → fake-GPU smoke test → `python -m build` sanity.
 - **Release** (`.github/workflows/release.yml`, on `v*` tags) — GitHub Release assets
   (wheel + sdist + `.deb`), a `ghcr.io/weidows/gpuq:<tag>` + `latest` image, and PyPI
-  publishing of the `gpu-q` distribution (skipped unless the `PYPI_ENABLED` repo
+  publishing of the `gpuqu` distribution (skipped unless the `PYPI_ENABLED` repo
   variable is set — it is).
 - **GitHub Pages** (`.github/workflows/pages.yml`, on `docs/**` changes) — publishes the
   static WebUI demo to `https://weidows.github.io/gpuq/`.
@@ -267,7 +267,7 @@ gpuq/
 ## Known limitations & graceful degradation
 
 - `nvidia-smi -pl` (power cap) needs root/admin; on failure it warns and keeps running.
-- Host net/disk/CPU curves need `psutil` (`pip install "gpu-q[host]"`); without it the
+- Host net/disk/CPU curves need `psutil` (`pip install "gpuqu[host]"`); without it the
   corresponding charts are greyed out and everything else keeps working.
 - Chart.js loads the bundled local vendor file first, falls back to a CDN.
 - Multiple GPUs on one host are first-class (per-`gpu_id` scheduling); cross-host
