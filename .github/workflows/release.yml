@@ -4,7 +4,8 @@ name: release
 # Builds & publishes:
 #   - GitHub Release assets: wheel (.whl) + sdist (.tar.gz) + Debian package (.deb)
 #   - Docker image -> ghcr.io/weidows/gpuq:<tag>  (no extra secrets needed)
-#   - PyPI (only if the PYPI_API_TOKEN secret is configured; skipped otherwise)
+#   - PyPI via trusted publishing (only if the repo variable PYPI_ENABLED=true;
+#     skipped otherwise)
 on:
   push:
     tags: ["v*"]
@@ -105,7 +106,11 @@ jobs:
   publish-pypi:
     name: PyPI (optional)
     needs: [build-python]
-    if: secrets.PYPI_API_TOKEN != ''
+    # Gate on a repo *variable* (vars is allowed in job-level if; secrets is
+    # not). Set Settings -> Secrets and variables -> Actions -> Variables ->
+    # PYPI_ENABLED=true to publish. Publishing uses trusted publishing (OIDC),
+    # no token secret required.
+    if: vars.PYPI_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
