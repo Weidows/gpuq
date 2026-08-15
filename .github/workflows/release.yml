@@ -28,7 +28,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: python-dist
-          path: dist/*.whl dist/*.tar.gz
+          path: dist/
 
   build-deb:
     name: build .deb
@@ -81,10 +81,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
+        # collect downloaded artifacts with find (avoids shell glob semantics
+        # differing across runners); then attach them all to the release
         run: |
-          gh release create "$TAG" \
-            artifacts/python-dist/* artifacts/deb-dist/* \
-            --title "$TAG" --generate-notes
+          FILES=$(find artifacts -type f)
+          echo "attaching:"
+          printf '%s\n' $FILES
+          gh release create "$TAG" $FILES --title "$TAG" --generate-notes
 
   publish-docker:
     name: Docker image (ghcr.io)
