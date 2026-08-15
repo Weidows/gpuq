@@ -81,13 +81,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        # the release job has no git checkout; run gh in a temp git repo so
-        # --generate-notes / tag resolution work. Assets are collected with
+        # the release job has no git checkout; init a scratch repo and fetch
+        # the tag so gh can generate release notes. Assets are collected with
         # find (no shell globs) and attached explicitly.
         run: |
           git init -q
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
           FILES=$(find artifacts -type f)
           echo "attaching:"
