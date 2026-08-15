@@ -39,5 +39,5 @@ jobs:
         run: |
           pip install build
           python -m build
-          python -m pip install dist/*.whl --force-reinstall
+          python -m pip install --force-reinstall dist/gpuq-0.1.0-py3-none-any.whl
           gpuq --help >/dev/null && echo "wheel installs OK"
