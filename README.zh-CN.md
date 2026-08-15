@@ -13,7 +13,7 @@ agent / 脚本不再直接 `python main.py` 抢 GPU，而是提交给 gpuq —�
 ![CI](https://img.shields.io/github/actions/workflow/status/Weidows/gpuq/ci.yml?branch=main&label=CI)
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-4da3ff)
 ![platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-3fb950)
-![license](https://img.shields.io/github/license/Weidows/gpuq)
+![license](https://img.shields.io/badge/license-source--available--non--commercial-3fb950)
 
 </div>
 
@@ -263,4 +263,5 @@ gpuq/
 
 ## License
 
-[MIT](./LICENSE)
+[Source-Available License（禁止商用）](./LICENSE) —— 个人、学术研究、教学用途免费；
+**商用需单独授权**（通过 GitHub 联系作者）。
