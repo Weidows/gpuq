@@ -1,0 +1,38 @@
+# Deploy the static WebUI demo (docs/) to GitHub Pages.
+# The dashboard normally talks to the gpuq REST API; for Pages it runs
+# unmodified against an in-browser simulated backend (docs/mock-api.js),
+# so visitors can try the UI without installing anything.
+#
+# Setup once in repo settings:
+#   Settings -> Pages -> Source: GitHub Actions
+name: deploy pages
+
+on:
+  workflow_dispatch:        # manual trigger
+  push:
+    branches: [main]
+    paths: ["docs/**"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - uses: actions/deploy-pages@v4
+        id: deployment

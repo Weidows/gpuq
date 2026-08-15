@@ -156,3 +156,12 @@ textarea { resize: vertical; }
 }
 .log-tools { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
 .log-tools input { width: 220px; margin: 0; }
+
+/* ---------- GitHub Pages live-demo banner (docs only) ---------- */
+.demo-banner {
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+  padding: 8px 20px; font-size: 13px; color: #0b1220;
+  background: linear-gradient(90deg, #4da3ff, #bc8cff);
+}
+.demo-banner a { color: #0b1220; font-weight: 600; text-decoration: none; }
+.demo-banner a:hover { text-decoration: underline; }

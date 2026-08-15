@@ -3,7 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gpuq"
+# Distribution name on PyPI is gpu-q (`gpuq` is taken there). The installed
+# console command and the import package stay `gpuq` — only the PyPI name differs.
+name = "gpu-q"
 dynamic = ["version"]
 description = "Lightweight cross-platform GPU job queue with WebUI + metrics (zero pip deps)"
 readme = "README.md"

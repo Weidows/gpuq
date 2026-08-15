@@ -1,37 +1,75 @@
-# gpuq — 跨平台 GPU 任务排队调度框架
+<div align="center">
 
-> **零 pip 依赖**（纯 Python 标准库）的 GPU 任务队列。agent / 脚本不再直接 `python main.py` 占 GPU，
-> 而是通过 gpuq 排队：**排队 → 调度 → 执行 → 日志 → GPU/IO/网络指标 → WebUI 看板**。
-> 跨平台（Windows / Linux / macOS），一条 `pip install gpuq` 即可用。
+# 🎛️ gpuq
 
-- 🧩 提交字段：`project, username, gpu_id, vram_mb, est_seconds, priority, command, fallback_wait, api_key, power_limit_w, version …`
-- 📜 每个任务独立日志文件（按任务 ID 定位，支持 tail / grep / WebUI 查看）
-- 📊 运行时按秒级采样 GPU 利用率 / 显存 / 温度 / 功耗 / SM 时钟，宿主机 net / disk / CPU（可选 psutil）
-- 🖥️ WebUI：任务看板（增删改查）、GPU 实时卡片、折线图（时间范围切换）、任务窗口指标 + 日志查看器
-- ⏸ `fallback_wait`：任务启动后 N 秒内退出 → 自动暂停整个队列并提示（方便调试启动即崩的任务）
-- 🔐 可选 X-Api-Key 鉴权（`api_keys` 非空即强制）
-- 🐳📦 CI 自动发包：GitHub Release（wheel/sdist/.deb）+ ghcr.io 镜像 + PyPI（可选）
+**A zero-dependency GPU job queue with a live WebUI dashboard and per-task metrics.**
+
+Agents and scripts stop racing for the GPU. They submit a job to gpuq — it queues,
+schedules, runs, logs, samples GPU/host metrics, and shows everything on a dashboard.
+
+[**Live WebUI demo**](https://weidows.github.io/gpuq/) · [简体中文](./README.zh-CN.md)
+
+![GitHub release](https://img.shields.io/github/v/release/Weidows/gpuq?color=4da3ff)
+![CI](https://img.shields.io/github/actions/workflow/status/Weidows/gpuq/ci.yml?branch=main&label=CI)
+![Python](https://img.shields.io/badge/python-%3E%3D3.10-4da3ff)
+![platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-3fb950)
+![license](https://img.shields.io/github/license/Weidows/gpuq)
+
+</div>
 
 ---
 
-## 1. 安装（跨平台，任选其一）
+## What is it?
 
-### pip（推荐，全平台通用）
+`gpuq` is a lightweight, self-hosted **GPU task queue** for a single machine (or a
+machine with many GPUs). Instead of every agent/script doing `python main.py` directly
+and fighting over the GPU, they submit a job — **queue → schedule → run → log →
+metrics → dashboard** — and let gpuq decide when and where it runs.
+
+- **Zero pip dependencies** — pure Python standard library (scheduler, SQLite, HTTP server, CLI, WebUI).
+- **Priority + VRAM-aware scheduling** across any number of GPUs, with automatic GPU allocation.
+- **Per-task log files** — tail, grep, or view in the browser by task id.
+- **Per-second GPU telemetry** — utilization, VRAM, temperature, power, SM/memory clocks — plus optional host network/disk/CPU curves (`psutil`).
+- **WebUI dashboard** — live GPU cards, task table (submit/edit/cancel/rerun), time-series charts, and a task detail view with in-window metrics + log viewer.
+- **`fallback_wait` crash guard** — a task that dies within N seconds of startup auto-pauses the whole queue so you notice immediately.
+- **Optional `X-Api-Key` auth** (enforced as soon as `api_keys` is non-empty).
+- **Cross-platform** — Windows / Linux / macOS. Deploys as a Python package, a Docker image, or a `.deb` with systemd.
+
+## Demo
+
+The WebUI is a static single-page app. The dashboard on [GitHub Pages](https://weidows.github.io/gpuq/)
+is the **real dashboard running against an in-browser simulated backend** (4 virtual GPUs, a live task
+queue, streaming metrics) — try every feature without installing anything, including submitting tasks,
+tailing logs, and reading the charts. It degrades gracefully if GitHub Pages is not yet enabled for the
+repo (the 404 there is harmless).
+
+## Installation
+
+### pip (PyPI: `gpu-q`)
+
+> The plain `gpuq` name is taken on PyPI, so the distribution is published as
+> **`gpu-q`** there. The installed console command and import package stay `gpuq`.
 
 ```bash
-pip install gpuq            # 核心零依赖
-pip install "gpuq[host]"    # 加 psutil → WebUI 出现宿主机 net/disk/cpu 曲线
+pip install gpu-q                          # core, zero deps
+pip install "gpu-q[host]"                  # + psutil → host net/disk/cpu charts
 ```
 
-装好后直接有 `gpuq` 命令：
+This installs the `gpuq` console command:
 
 ```bash
-gpuq serve                  # 启动服务（默认 http://127.0.0.1:8765）
+gpuq serve                      # start the server (default http://127.0.0.1:8765)
 ```
 
-> 源码直接运行：`python -m gpuq.cli serve`（需 Python ≥ 3.10）。
+Or install the latest from source (same package layout):
 
-### Docker（ghcr.io 镜像，自动随 tag 发布）
+```bash
+pip install "gpu-q @ git+https://github.com/Weidows/gpuq.git"
+```
+
+Or run from a checkout without installing: `python -m gpuq.cli serve` (Python ≥ 3.10).
+
+### Docker
 
 ```bash
 docker run -d --name gpuq \
@@ -43,34 +81,36 @@ docker run -d --name gpuq \
 # WebUI: http://localhost:8765
 ```
 
-- 需宿主机 NVIDIA Container Toolkit（容器内任务可见 GPU）
-- 任务在容器内作为子进程执行；训练环境（代码/数据集）挂到 `/work` 后提交时带 `"cwd": "/work"`
-- `docker compose -f packaging/docker/docker-compose.yml up -d` 有完整编排（`gpus: all`、`restart`、健康检查）
+- Requires the NVIDIA Container Toolkit on the host (containerized tasks see the GPUs).
+- Tasks run as child processes inside the container; mount training code/data at `/work`
+  and submit with `"cwd": "/work"`.
+- `docker compose -f packaging/docker/docker-compose.yml up -d` gives the full setup
+  (`gpus: all`, restart policy, health check).
 
-### Debian / Ubuntu（.deb）
+### Debian / Ubuntu (`.deb`)
 
 ```bash
-# 从 GitHub Release 下载 gpuq_<ver>_all.deb
-sudo dpkg -i gpuq_*.deb        # 自动创建 gpuq 用户 + systemd 开机自启
-# WebUI: http://<host>:8765     日志: journalctl -u gpuq -f
+# Download gpuq_<ver>_all.deb from the GitHub Release
+sudo dpkg -i gpuq_*.deb        # creates a gpuq user + enables the systemd unit
+# WebUI: http://<host>:8765     logs: journalctl -u gpuq -f
 ```
 
-安装后布局：`/usr/bin/gpuq`(CLI)、`/etc/gpuq/config.json`、`/var/lib/gpuq/`(数据)、`/etc/systemd/system/gpuq.service`。
+Install layout: `/usr/bin/gpuq` (CLI), `/etc/gpuq/config.json`, `/var/lib/gpuq/` (data),
+`/etc/systemd/system/gpuq.service`.
 
-### 源码运行
+### From source
 
 ```bash
 git clone https://github.com/Weidows/gpuq && cd gpuq
-python -m gpuq.cli serve       # 或 python -m gpuq.cli --help
+pip install -e . && gpuq serve
 ```
 
----
-
-## 2. 快速开始
+## Quick start
 
 ```bash
 gpuq serve &
-# 提交一个任务（CLI 与 REST API 等价）
+
+# Submit a job (CLI and REST API are equivalent)
 gpuq submit \
   --project myexp --user alice --gpu 0 \
   --vram 8000 --est 3600 --priority 5 \
@@ -78,55 +118,81 @@ gpuq submit \
   --version $(git rev-parse --short HEAD) \
   -- python main.py --epochs 10 --batch-size 32
 
-gpuq status                     # 队列状态 + GPU 实时状态
-gpuq logs <task_id> --follow    # 跟日志（tail -f）
-gpuq list --status running      # 筛选任务
-gpuq metrics --gpu 0 --step 30  # 指标序列（喂给图表/分析）
-gpuq queue pause / resume       # 暂停 / 恢复队列
+gpuq status                     # queue state + live GPU state
+gpuq logs <task_id> --follow    # tail a task's log
+gpuq list --status running      # filter tasks
+gpuq metrics --gpu 0 --step 30  # metric series (feed charts / analysis)
+gpuq queue pause / resume       # pause / resume the whole queue
 ```
 
----
+## How it works
 
-## 3. 提交字段
+```
+ agents / CI / cron / scripts
+        │  POST /api/tasks  (CLI `gpuq submit`)
+        ▼
+┌─────────────────┐   poll every ~2s   ┌──────────────────────────────┐
+│  REST API + WebUI │ ◄───────────────► │  Scheduler                   │
+│  (ThreadingHTTP)  │                   │  priority ↓, created ↑,     │
+│  X-Api-Key auth   │                   │  free VRAM ≥ est + headroom │
+└────────┬────────┘                     └──────┬───────────────────────┘
+         │ sqlite3                             │ Popen (per-task log file)
+         ▼                                     ▼
+   tasks + metrics db                 GPU tasks (CUDA_VISIBLE_DEVICES injected)
+         │
+         ▼
+   metric sampler: nvidia-smi (GPU) · psutil (host net/disk/cpu, optional)
+```
 
-| 字段 | 必需 | 说明 |
+- Every ~2 s the scheduler picks the highest-priority **queued** task whose VRAM
+  estimate fits a free GPU (or its pinned `gpu_id`) and starts it as a child process.
+- A sampler thread records GPU telemetry per second; with `psutil` installed it adds
+  host network / disk / CPU curves.
+- When a task exits, its run window gets aggregated (avg/peak utilization, peak VRAM,
+  max temperature, peak power, peak net/disk IO) — viewable in the WebUI detail page.
+
+## Task fields
+
+| Field | Required | Description |
 |---|---|---|
-| `command` | ✅ | 命令 + 参数**列表**（`["python","main.py","--epochs","10"]`）；CLI 放在 `--` 之后 |
-| `project` | | 项目名，分组/筛选用（日志追溯第一维） |
-| `username` | | 提交者 |
-| `gpu_id` | | 指定 GPU 索引；留空 = 自动分配第一个满足条件的 GPU |
-| `vram_mb` | | **预估显存 MiB**（调度依据：空闲显存 ≥ 预估 + 512MB 余量） |
-| `est_seconds` | | 预估时长（仅展示） |
-| `priority` | | 优先级，默认 5，**越大越先** |
-| `fallback_wait_seconds` | | **启动缓冲窗口**：任务启动后该秒数内退出（无论退出码）→ **自动暂停整个队列**，原因里带任务 id 和日志路径，方便调试启动即崩 |
-| `api_key` | | 平台认证 key（记录在任务上；服务端校验见 config `api_keys`） |
-| `version` | | 代码版本 / commit，追溯用 |
-| `power_limit_w` | | 运行时功耗上限（`nvidia-smi -pl`，需 root/管理员；失败仅警告） |
-| `cwd` | | 工作目录 |
-| `env` | | 额外环境变量 dict（默认注入 `CUDA_VISIBLE_DEVICES=分配到的GPU`） |
+| `command` | ✅ | Program + args as an **array** (`["python","main.py","--epochs","10"]`); with the CLI, put them after `--` |
+| `project` | | Project name — grouping/filtering (first dimension of log tracing) |
+| `username` | | Submitter |
+| `gpu_id` | | Pin a GPU index; omit for automatic allocation of the first fitting GPU |
+| `vram_mb` | | **Estimated VRAM in MiB** — the scheduling constraint (free VRAM must be ≥ estimate + 512 MB headroom) |
+| `est_seconds` | | Estimated runtime (display only) |
+| `priority` | | Default 5; **higher runs sooner** |
+| `fallback_wait_seconds` | | **Startup crash guard**: if the task exits within this many seconds of starting (any exit code), the whole queue auto-pauses with a reason that includes the task id and log path |
+| `api_key` | | Platform key recorded on the task (server-side validation via config `api_keys`) |
+| `version` | | Code version / commit for traceability |
+| `power_limit_w` | | Runtime power cap (`nvidia-smi -pl`; needs root/admin — failure only warns) |
+| `cwd` | | Working directory |
+| `env` | | Extra environment variables (dict); `CUDA_VISIBLE_DEVICES` is injected automatically |
 
-## 4. REST API
+## REST API
 
-Base `http://<host>:8765`，鉴权头 `X-Api-Key`（仅当 `api_keys` 非空时强制）。
+Base `http://<host>:8765`; auth header `X-Api-Key` (enforced only when `api_keys` is non-empty).
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| POST | `/api/tasks`（别名 `/api/submit`） | 提交任务 |
-| GET | `/api/tasks?status=&project=&user=&since=&limit=` | 任务列表 |
-| GET | `/api/tasks/{id}` | 详情 + 聚合指标（平均/峰值 util、显存、温度、功耗、IO） |
-| PATCH | `/api/tasks/{id}` | 编辑排队中的任务 |
-| DELETE | `/api/tasks/{id}` | 取消（运行中整树强杀）/ 删除 |
-| POST | `/api/tasks/{id}/rerun` | 克隆重排 |
-| GET | `/api/tasks/{id}/logs?offset=&limit=&q=` | 日志 tail / grep |
-| GET | `/api/tasks/{id}/metrics` | 该任务运行窗口内的指标序列 |
-| GET | `/api/metrics?gpu=&from=&to=&step=` | 图表时间序列（`gpu=-1` 为宿主机 net/disk/cpu） |
-| GET | `/api/system` | 实时 GPU + 队列状态 |
-| POST | `/api/queue/pause` / `/api/queue/resume` | 暂停 / 恢复队列 |
-| GET | `/api/openapi.json` | 机器可读端点摘要（agent 自动发现用） |
+| POST | `/api/tasks` (alias `/api/submit`) | Submit a task |
+| GET | `/api/tasks?status=&project=&user=&since=&limit=` | List tasks |
+| GET | `/api/tasks/{id}` | Detail + aggregated metrics (avg/peak util, VRAM, temp, power, IO) |
+| PATCH | `/api/tasks/{id}` | Edit a queued task |
+| DELETE | `/api/tasks/{id}` | Cancel (kills the whole process tree if running) / delete |
+| POST | `/api/tasks/{id}/rerun` | Clone + re-queue |
+| GET | `/api/tasks/{id}/logs?offset=&limit=&q=` | Tail / grep the task log |
+| GET | `/api/tasks/{id}/metrics` | Metric series inside the task's run window |
+| GET | `/api/metrics?gpu=&from=&to=&step=` | Chart time series (`gpu=-1` = host net/disk/cpu) |
+| GET | `/api/system` | Live GPU + queue state |
+| POST | `/api/queue/pause` / `/api/queue/resume` | Pause / resume the queue |
+| GET | `/api/openapi.json` | Machine-readable endpoint summary (for agent auto-discovery) |
 
-## 5. 配置
+## Configuration
 
-`config.json`（gitignored；模板见 `config.example.json`），环境变量 `GPUQ_*` 覆盖（`GPUQ_PORT` / `GPUQ_HOST` / `GPUQ_DATA` / `GPUQ_API_KEYS` / `GPUQ_DEFAULT_POWER_LIMIT` / …）。
+`config.json` (gitignored; template in `config.example.json`) — every key can be
+overridden by a `GPUQ_*` env var (`GPUQ_PORT`, `GPUQ_HOST`, `GPUQ_DATA`,
+`GPUQ_API_KEYS`, `GPUQ_DEFAULT_POWER_LIMIT`, …).
 
 ```json
 {
@@ -141,51 +207,74 @@ Base `http://<host>:8765`，鉴权头 `X-Api-Key`（仅当 `api_keys` 非空时�
 }
 ```
 
-## 6. 任务排错工作流（agent 用）
+## WebUI
 
-1. `gpuq status` — 看队列是否因 fallback_wait 暂停、GPU 是否空闲
-2. `gpuq logs <id> --follow` — 定位报错
-3. `gpuq metrics --gpu 0 --from <ts>` 或 WebUI 详情页 — 看运行窗口指标：
-   - **OOM** → `peak_mem` 接近显存上限；日志 `out of memory`
-   - **降频/过热** → `temp` 高 + `sm_clock` 掉 → 降功耗 / 换策略
-   - **IO 卡住** → `disk_io` 长时间为 0 且 util 低
-   - **网络拥塞** → `net_rx/net_tx` 打满
-4. 修复后 `gpuq rerun <id>` 重排队，必要时先 `gpuq queue resume`。
+- **GPU cards** — live utilization, VRAM, temperature, power, SM clock per GPU.
+- **Charts** — per-GPU utilization / VRAM / temp+power / SM clock over 1h · 6h · 24h · 7d, plus host net/disk/CPU when `psutil` is available.
+- **Tasks** — filter tabs by status, submit via form, edit queued jobs, cancel (tree-kill), re-run.
+- **Task detail** — full metadata, in-window metric chart, and a live-updating log viewer with grep.
 
-## 7. Agent skill
+## Debugging workflow (agent-friendly)
 
-仓库内置 skill（`skills/gpuq/SKILL.md`），安装到 agent 技能目录即可：
+1. `gpuq status` — is the queue paused (fallback_wait), are GPUs free?
+2. `gpuq logs <id> --follow` — find the error.
+3. `gpuq metrics --gpu 0 --from <ts>` or the WebUI detail page — read the run window:
+   - **OOM** → `peak_mem` near the VRAM ceiling; log says `out of memory`.
+   - **Throttling / overheating** → high `temp` with dropping `sm_clock` → lower power cap / change strategy.
+   - **IO stall** → `disk_io` stuck at 0 while utilization is low.
+   - **Network congestion** → `net_rx` / `net_tx` pinned at the ceiling.
+4. Fix, then `gpuq rerun <id>` to re-queue (resume first if paused).
+
+## Agent skill
+
+The repo ships a ready-made agent skill at `skills/gpuq/SKILL.md` — copy it into your
+agent's skill directory:
 
 ```bash
 cp skills/gpuq/SKILL.md ~/.agents/skills/gpuq/SKILL.md
 ```
 
-skill 里包含：服务确认/启动方法、提交字段全表、状态轮询→日志→指标分析→rerun 的完整工作流、curl 与 CLI 双示例、错误处理表。
+It covers service detection/startup, the full submission-field table, the
+status → logs → metrics → rerun workflow, CLI + curl examples, and an error-handling table.
 
-## 8. 开发 / CI / 发包
+## Development / CI / Release
 
 ```bash
-pip install -e . && python tests/smoke.py    # 本机冒烟（无 GPU 设 GPUQ_SMOKE_FAKE_GPU=1）
+pip install -e . && python tests/smoke.py      # local smoke test (set GPUQ_SMOKE_FAKE_GPU=1 with no GPU)
 ```
 
-- **CI**（`.github/workflows/ci.yml`）：ubuntu/windows/macos × py3.10/3.11 矩阵，装 wheel → 假 GPU 冒烟 → `python -m build` 打包 sanity
-- **发包**（`.github/workflows/release.yml`，打 `v*` tag 触发）：
-  - GitHub Release 资产：wheel + sdist + .deb
-  - ghcr.io 镜像：`ghcr.io/weidows/gpuq:<tag>` + `latest`（零配置 secrets）
-  - PyPI：配了 `PYPI_API_TOKEN` secret 才执行，否则自动跳过
-- 目录结构：
-  ```
-  gpuq/
-    gpuq/            # config / db / gpu / metrics / scheduler / api / cli / webui(打包进包)
-    packaging/       # docker/ + deb/（systemd unit、maintainer 脚本）
-    tests/smoke.py
-    .github/workflows/  # ci.yml + release.yml
-  ```
+- **CI** (`.github/workflows/ci.yml`) — ubuntu/windows/macos × py3.10/3.11 matrix:
+  install the wheel → fake-GPU smoke test → `python -m build` sanity.
+- **Release** (`.github/workflows/release.yml`, on `v*` tags) — GitHub Release assets
+  (wheel + sdist + `.deb`), a `ghcr.io/weidows/gpuq:<tag>` + `latest` image, and PyPI
+  publishing of the `gpu-q` distribution (skipped unless the `PYPI_ENABLED` repo
+  variable is set — it is).
+- **GitHub Pages** (`.github/workflows/pages.yml`, on `docs/**` changes) — publishes the
+  static WebUI demo to `https://weidows.github.io/gpuq/`.
 
-## 9. 已知限制与降级
+### Layout
 
-- `nvidia-smi -pl`（功耗上限）需要 root / 管理员权限，失败仅打警告、不中断任务
-- 宿主机 net/disk/cpu 曲线需要 `psutil`（`pip install "gpuq[host]"`），缺失时 WebUI 对应图表置灰，其余功能不受影响
-- Chart.js 优先加载本地 vendor 文件（已打包进 wheel），缺失时回退 CDN
-- 单机多 GPU 天然支持（按 gpu_id 独立调度）；跨机联邦不在本期范围
-- 无 GPU 环境（如 CI）可用 `GPUQ_FAKE_GPU=1` 跑通调度/指标链路做冒烟
+```
+gpuq/
+  gpuq/            # config / db / gpu / metrics / scheduler / api / cli / webui (bundled)
+  docs/            # static WebUI + mock backend → GitHub Pages live demo
+  packaging/       # docker/ + deb/ (systemd unit, maintainer scripts)
+  skills/gpuq/     # agent skill
+  tests/smoke.py
+  .github/workflows/  # ci.yml + release.yml + pages.yml
+```
+
+## Known limitations & graceful degradation
+
+- `nvidia-smi -pl` (power cap) needs root/admin; on failure it warns and keeps running.
+- Host net/disk/CPU curves need `psutil` (`pip install "gpu-q[host]"`); without it the
+  corresponding charts are greyed out and everything else keeps working.
+- Chart.js loads the bundled local vendor file first, falls back to a CDN.
+- Multiple GPUs on one host are first-class (per-`gpu_id` scheduling); cross-host
+  federation is out of scope for now.
+- No GPU? `GPUQ_FAKE_GPU=1` drives the whole scheduler/metrics path with a synthetic GPU
+  (used by CI).
+
+## License
+
+[MIT](./LICENSE)
