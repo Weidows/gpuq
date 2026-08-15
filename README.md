@@ -154,10 +154,10 @@ Base `http://<host>:8765`，鉴权头 `X-Api-Key`（仅当 `api_keys` 非空时�
 
 ## 7. Agent skill
 
-仓库内置 skill（`docs/gpuq-skill.md`），安装到 agent 技能目录即可：
+仓库内置 skill（`skills/gpuq/SKILL.md`），安装到 agent 技能目录即可：
 
 ```bash
-cp docs/gpuq-skill.md ~/.agents/skills/gpuq/SKILL.md
+cp skills/gpuq/SKILL.md ~/.agents/skills/gpuq/SKILL.md
 ```
 
 skill 里包含：服务确认/启动方法、提交字段全表、状态轮询→日志→指标分析→rerun 的完整工作流、curl 与 CLI 双示例、错误处理表。
