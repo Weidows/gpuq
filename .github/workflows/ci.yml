@@ -36,6 +36,7 @@ jobs:
         run: python tests/smoke.py
 
       - name: Build wheel + sdist (package sanity)
+        shell: bash
         run: |
           pip install build
           python -m build

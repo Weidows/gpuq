@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Lightweight cross-platform GPU job queue with WebUI + metrics (zero pip deps)"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Weidows" }]
 keywords = ["gpu", "queue", "scheduler", "training", "nvidia", "dashboard"]
 classifiers = [
@@ -16,7 +16,6 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
