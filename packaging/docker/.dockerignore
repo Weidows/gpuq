@@ -1,0 +1,31 @@
+# build context = repo root (run from repo root):
+#   docker build -f packaging/docker/Dockerfile -t gpuq .
+#   docker compose -f packaging/docker/docker-compose.yml up -d
+
+# git
+.git
+.gitignore
+
+# runtime data
+data/
+*.db
+*.log
+
+# packaging artifacts
+dist/
+*.deb
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# user config
+config.json
+
+# junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

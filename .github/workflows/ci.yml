@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: test (${{ matrix.os }} / py${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install package (verifies wheel metadata + console script)
+        run: |
+          pip install .
+          gpuq --help
+
+      # CI runners have no GPU: smoke.py's GPU rows are skipped, and
+      # GPUQ_SMOKE_FAKE_GPU makes the scheduler/metrics path use a fake GPU
+      # so scheduling/fallback/logs still get exercised end-to-end.
+      - name: Run smoke tests (fake GPU)
+        shell: bash
+        env:
+          GPUQ_SMOKE_FAKE_GPU: "1"
+        run: python tests/smoke.py
+
+      - name: Build wheel + sdist (package sanity)
+        run: |
+          pip install build
+          python -m build
+          python -m pip install dist/*.whl --force-reinstall
+          gpuq --help >/dev/null && echo "wheel installs OK"

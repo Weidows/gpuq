@@ -1,0 +1,47 @@
+# gpuq — Docker Compose (NVIDIA GPU passthrough)
+#
+# Requirements:
+#   - Docker with the NVIDIA Container Toolkit installed
+#     (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/)
+#   - a GPU exposed via `--gpus all` / `gpus: all` below
+#
+# Usage:
+#   docker compose up -d
+#   open http://localhost:8765
+services:
+  gpuq:
+    build: .
+    container_name: gpuq
+    ports:
+      - "${GPUQ_PORT:-8765}:8765"
+    environment:
+      GPUQ_HOST: 0.0.0.0
+      GPUQ_PORT: 8765
+      GPUQ_DATA: /data
+      # optional: comma-separated API keys -> enforces X-Api-Key
+      # GPUQ_API_KEYS: "key1,key2"
+      # GPUQ_DEFAULT_POWER_LIMIT: 250
+    volumes:
+      # runtime data (sqlite db + task logs)
+      - gpuq-data:/data
+      # task working directory: mount your training code here and submit
+      # with "cwd": "/work". Can also bake code into the image instead.
+      - ${GPUQ_WORKDIR:-./work}:/work
+    restart: unless-stopped
+    # GPU access (NVIDIA container toolkit required)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8765/api/system', timeout=2).status==200 else 1)"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  gpuq-data:

@@ -1,0 +1,29 @@
+# runtime data (sqlite db + task logs)
+data/
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# user-local config (use config.example.json as template) — root only,
+# so the packaged config at packaging/deb/etc/gpuq/config.json is NOT ignored
+/config.json
+
+# session/editor artifacts
+.zcode/
+
+# packaging artifacts
+dist/
+*.deb
+*.egg-info/
+build/
+
+# editors / os
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db

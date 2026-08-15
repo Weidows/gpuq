@@ -1,0 +1,121 @@
+name: release
+
+# Triggered by a tag like v0.1.0.
+# Builds & publishes:
+#   - GitHub Release assets: wheel (.whl) + sdist (.tar.gz) + Debian package (.deb)
+#   - Docker image -> ghcr.io/weidows/gpuq:<tag>  (no extra secrets needed)
+#   - PyPI (only if the PYPI_API_TOKEN secret is configured; skipped otherwise)
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write       # gh release create / upload assets
+  packages: write       # push to ghcr.io
+
+jobs:
+  build-python:
+    name: build wheel + sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist/*.whl dist/*.tar.gz
+
+  build-deb:
+    name: build .deb
+    runs-on: ubuntu-latest
+    outputs:
+      deb_file: ${{ steps.deb.outputs.deb_file }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble .deb payload
+        id: deb
+        shell: bash
+        env:
+          GPUQ_VERSION: ${{ github.ref_name }}
+        run: |
+          set -eu
+          VER="${GPUQ_VERSION#v}"
+          STAGE="dist/deb-stage"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE/usr/lib/gpuq" "$STAGE/usr/bin" \
+                   "$STAGE/etc/gpuq" "$STAGE/etc/systemd/system" "$STAGE/DEBIAN"
+          cp -r gpuq   "$STAGE/usr/lib/gpuq/gpuq"
+          cp config.example.json "$STAGE/etc/gpuq/config.example.json"
+          cp packaging/deb/etc/gpuq/config.json "$STAGE/etc/gpuq/config.json"
+          cp packaging/deb/etc/systemd/system/gpuq.service "$STAGE/etc/systemd/system/gpuq.service"
+          # metadata: control + maintainer scripts
+          sed "s/^Version: .*/Version: $VER/" packaging/deb/DEBIAN/control > "$STAGE/DEBIAN/control"
+          cp packaging/deb/DEBIAN/postinst packaging/deb/DEBIAN/prerm packaging/deb/DEBIAN/postrm "$STAGE/DEBIAN/"
+          printf '/etc/gpuq/config.json\n' > "$STAGE/DEBIAN/conffiles"
+          chmod 0755 "$STAGE/DEBIAN/postinst" "$STAGE/DEBIAN/prerm" "$STAGE/DEBIAN/postrm"
+          # md5sums (paths relative to the stage root, "./"-prefixed)
+          ( cd "$STAGE" && find usr etc -type f -exec md5sum {} \; | sed 's|  usr/|  ./usr/|; s|  etc/|  ./etc/|' > DEBIAN/md5sums )
+          # dpkg-deb requires DEBIAN/ to contain control; wrap in a temp build dir
+          dpkg-deb --build "$STAGE" "dist/gpuq_${VER}_all.deb"
+          rm -rf "$STAGE"
+          echo "deb_file=dist/gpuq_${VER}_all.deb" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb-dist
+          path: ${{ steps.deb.outputs.deb_file }}
+
+  publish-release:
+    name: GitHub Release
+    needs: [build-python, build-deb]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create release with assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            artifacts/python-dist/* artifacts/deb-dist/* \
+            --title "$TAG" --generate-notes
+
+  publish-docker:
+    name: Docker image (ghcr.io)
+    needs: [build-python]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build + push ghcr.io image
+        env:
+          REGISTRY: ghcr.io
+          IMAGE: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          echo "${{ github.token }}" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
+          docker build -f packaging/docker/Dockerfile -t "$REGISTRY/${IMAGE,,}:${TAG}" -t "$REGISTRY/${IMAGE,,}:latest" .
+          docker push "$REGISTRY/${IMAGE,,}:${TAG}"
+          docker push "$REGISTRY/${IMAGE,,}:latest"
+
+  publish-pypi:
+    name: PyPI (optional)
+    needs: [build-python]
+    if: secrets.PYPI_API_TOKEN != ''
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # trusted publishing (no password needed)
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

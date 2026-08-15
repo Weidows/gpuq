@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpuq"
+dynamic = ["version"]
+description = "Lightweight cross-platform GPU job queue with WebUI + metrics (zero pip deps)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Weidows" }]
+keywords = ["gpu", "queue", "scheduler", "training", "nvidia", "dashboard"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Systems Administration",
+]
+# core is stdlib-only by design; psutil is optional for host net/disk/cpu curves
+dependencies = []
+
+[project.optional-dependencies]
+host = ["psutil>=5.9"]
+dev = ["build", "twine"]
+
+[project.urls]
+Homepage = "https://github.com/Weidows/gpuq"
+Repository = "https://github.com/Weidows/gpuq"
+Issues = "https://github.com/Weidows/gpuq/issues"
+
+[project.scripts]
+gpuq = "gpuq.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["gpuq*"]
+
+[tool.setuptools.package-data]
+gpuq = ["webui/*", "webui/vendor/*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "gpuq.__version__" }

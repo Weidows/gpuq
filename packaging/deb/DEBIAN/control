@@ -1,0 +1,14 @@
+Package: gpuq
+Version: 0.1.0
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.10)
+Maintainer: Weidows <weidows@example.com>
+Homepage: https://github.com/Weidows/gpuq
+Description: Lightweight GPU job queue with WebUI + metrics
+ Zero-dependency (Python stdlib) GPU task scheduler: agents submit jobs
+ with (project, user, gpu, vram, priority, fallback_wait, api_key, power
+ limit, ...) through a REST API / CLI; gpuq queues, runs, logs, samples
+ GPU/host metrics, and shows a WebUI dashboard with charts. Includes a
+ systemd unit (gpuq.service) enabled at install time.

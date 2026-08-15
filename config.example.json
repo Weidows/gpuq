@@ -1,0 +1,11 @@
+{
+  "host": "127.0.0.1",
+  "port": 8765,
+  "poll_interval": 2.0,
+  "metrics_interval": 5.0,
+  "vram_headroom_mb": 512,
+  "api_keys": [],
+  "default_power_limit_w": null,
+  "data_dir": "data",
+  "gpu_bin": "nvidia-smi"
+}

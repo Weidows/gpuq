@@ -1,0 +1,31 @@
+[Unit]
+Description=gpuq GPU job queue (REST API + WebUI + scheduler)
+Documentation=https://github.com/Weidows/gpuq
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Runs as the gpuq system user so tasks launched through the queue
+# are not root. Add your users to the 'gpuq' group if they need to
+# submit jobs from a shared working directory.
+User=gpuq
+Group=gpuq
+# systemd creates /var/lib/gpuq (StateDirectory) and /run/gpuq.
+RuntimeDirectory=gpuq
+StateDirectory=gpuq
+LogsDirectory=gpuq
+ExecStart=/usr/lib/gpuq/gpuq/cli.py serve --config /etc/gpuq/config.json --data /var/lib/gpuq
+Restart=on-failure
+RestartSec=3
+# nvidia-smi power-limit (-pl) needs root; give the service just that
+# capability instead of full root:
+#   CapabilityBoundingSet=CAP_SYS_ADMIN
+#   AmbientCapabilities=CAP_SYS_ADMIN
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
