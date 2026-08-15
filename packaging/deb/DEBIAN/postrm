@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+case "$1" in
+  remove|purge)
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl daemon-reload || true
+    fi
+    rm -f /usr/bin/gpuq
+    ;;
+esac
+# purge additionally removes runtime data
+if [ "$1" = "purge" ]; then
+    rm -rf /var/lib/gpuq
+    rm -rf /etc/gpuq
+    rm -f /etc/systemd/system/gpuq.service
+    userdel gpuq 2>/dev/null || true
+fi
+exit 0

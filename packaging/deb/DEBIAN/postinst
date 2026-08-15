@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+# dedicated system user for the daemon
+if ! getent passwd gpuq >/dev/null 2>&1; then
+    useradd --system --home /var/lib/gpuq --shell /usr/sbin/nologin gpuq
+fi
+if ! getent group gpuq >/dev/null 2>&1; then
+    groupadd --system gpuq
+fi
+usermod -a -G gpuq gpuq
+install -d -o gpuq -g gpuq -m 0755 /var/lib/gpuq
+ln -sf /usr/lib/gpuq/gpuq/cli.py /usr/bin/gpuq
+chmod +x /usr/lib/gpuq/gpuq/cli.py
+systemctl daemon-reload
+systemctl enable gpuq.service
+systemctl start gpuq.service || true
+echo "gpuq installed. WebUI: http://<host>:8765  (log: journalctl -u gpuq -f)"
