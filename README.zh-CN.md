@@ -230,9 +230,29 @@ skill 里包含：服务确认/启动方法、提交字段全表、状态轮询�
 
 ## 开发 / CI / 发包
 
+依赖用 [uv](https://docs.astral.sh/uv/) 管理：
+
 ```bash
-pip install -e . && python tests/smoke.py    # 本机冒烟（无 GPU 设 GPUQ_SMOKE_FAKE_GPU=1）
+uv sync                        # 按 uv.lock 创建 .venv（core + dev + host extras）
+uv run gpuq serve              # 启动服务（http://127.0.0.1:8765）
+uv run gpuq submit --project demo --user you --vram 2000 -- python main.py
+uv run python tests/smoke.py   # 冒烟测试；无 GPU 时 GPUQ_SMOKE_FAKE_GPU=1
 ```
+
+不用 uv 也可以：`pip install -e ".[dev,host]" && gpuq serve`。
+
+### 重新生成 Pages 演示 mock 数据
+
+在线演示 `https://weidows.github.io/gpuq/` 跑在 `docs/mock-data.js` 上——由
+`scripts/gen_mock_data.py` 生成的确定性快照（`docs/mock-api.js` 在页面加载时做时间对齐）：
+
+```bash
+uv run python scripts/gen_mock_data.py                      # -> docs/mock-data.js（seed 42，1h 历史）
+uv run python scripts/gen_mock_data.py --seed 7 --hours 2   # 换场景
+uv run python scripts/gen_mock_data.py --json-out /tmp/mock # 额外导出原始 JSON + 每任务 .log
+```
+
+提交重新生成的 `docs/mock-data.js` 后，Pages 工作流会自动重新部署。
 
 - **CI**（`.github/workflows/ci.yml`）：ubuntu/windows/macos × py3.10/3.11 矩阵，装 wheel → 假 GPU 冒烟 → `python -m build` 打包 sanity
 - **发包**（`.github/workflows/release.yml`，打 `v*` tag 触发）：
