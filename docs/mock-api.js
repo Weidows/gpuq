@@ -485,7 +485,7 @@
       },
       counts: { queued: queuedTasks().length, running: running.length, total: S.tasks.length },
       host_available: true,
-      server: { version: "0.1.2", host: "demo (simulated)", port: 8765, uptime: now() - S.boot },
+      server: { version: "0.1.3", host: "demo (simulated)", port: 8765, uptime: now() - S.boot },
     };
   }
 
@@ -632,7 +632,7 @@
     }
     if (method === "GET" && path === "/api/system") return systemPayload();
     if (method === "GET" && path === "/api/openapi.json") {
-      return { openapi: "3.0.0", info: { title: "gpuq", version: "0.1.2" }, paths: {} };
+      return { openapi: "3.0.0", info: { title: "gpuq", version: "0.1.3" }, paths: {} };
     }
 
     throw new Error(`no such endpoint: ${method} ${path}`);

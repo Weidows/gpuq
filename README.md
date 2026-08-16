@@ -13,7 +13,7 @@ schedules, runs, logs, samples GPU/host metrics, and shows everything on a dashb
 ![CI](https://img.shields.io/github/actions/workflow/status/Weidows/gpuq/ci.yml?branch=main&label=CI)
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-4da3ff)
 ![platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-3fb950)
-![license](https://img.shields.io/badge/license-source--available--non--commercial-3fb950)
+![license](https://img.shields.io/github/license/Weidows/gpuq)
 
 </div>
 
@@ -277,6 +277,4 @@ gpuq/
 
 ## License
 
-[Source-Available License (non-commercial)](./LICENSE) — free for personal,
-research, and educational use. **Commercial use requires a separate license**
-from the author (contact via GitHub).
+[MIT](./LICENSE)

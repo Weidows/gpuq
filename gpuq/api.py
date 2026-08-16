@@ -409,7 +409,7 @@ class Handler(BaseHTTPRequestHandler):
                 "total": len(self.ctx.db.list_tasks(limit=1000)),
             },
             "host_available": host_available(),
-            "server": {"version": "0.1.2", "host": self.ctx.cfg["host"],
+            "server": {"version": "0.1.3", "host": self.ctx.cfg["host"],
                        "port": self.ctx.cfg["port"], "uptime": int(time.time() - self.ctx._boot)},
         }
 
@@ -486,7 +486,7 @@ TASK_SCHEMA = {
 
 OPENAPI = {
     "openapi": "3.0.0",
-    "info": {"title": "gpuq", "version": "0.1.2",
+    "info": {"title": "gpuq", "version": "0.1.3",
              "description": "GPU job queue. Auth via X-Api-Key header (only when api_keys configured)."},
     "paths": {
         "/api/tasks": {"post": {"summary": "submit a task", "requestBody": {
