@@ -149,7 +149,7 @@
   function taskById(id) { return S.tasks.find((t) => t.id === id); }
 
   /* Seed a believable day on a busy ML lab box. */
-  (function seed() {
+  function seed() {
     const b = BOOT;
     const t0 = BOOT - 3600;
 
@@ -247,7 +247,51 @@
     const run1 = taskById("b41d0ef2c890");
     run1.log = genEvalLog(420, { start: b - 420, seed: 4 });
     run1._series = genWindowSeries("2", b - 420, b, 30, { utilBase: 62, memBase: 60000, tempBase: 58, powerBase: 180 });
-  })();
+  }
+
+  /* ---------------- external seed data (scripts/gen_mock_data.py) ----------
+   *
+   * When docs/mock-data.js is loaded (it defines window.__GPUQ_MOCK_DATA) use
+   * that snapshot instead of the built-in seed above. The snapshot is
+   * time-aligned to page load: all timestamps are shifted by the gap between
+   * generation and load so the demo always looks fresh, log-line timestamps
+   * are rewritten to match, and running durations stay natural. */
+  const SEED_TS_RE = /^\[?(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})\]?\s*/;
+
+  function shiftLogTs(line, delta) {
+    const m = line.match(SEED_TS_RE);
+    if (!m) return line;
+    const epoch = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) / 1000 + delta;
+    const iso = new Date(epoch * 1000).toISOString().slice(0, 19).replace("T", " ");
+    const head = line.startsWith("[") ? "[" : "";
+    const tail = line.slice(m[0].length).replace(/^\s+/, "");
+    return head + iso + "] " + tail;
+  }
+
+  function loadSeedData() {
+    const d = root.__GPUQ_MOCK_DATA;
+    if (!d || !d.tasks) return false;
+    const delta = Math.floor(now() - (d.boot || 0));
+    Object.keys(d.gpus || {}).forEach((i) => {
+      if (S.gpus[i]) Object.assign(S.gpus[i], d.gpus[i]);
+    });
+    Object.keys(d.history || {}).forEach((k) => {
+      S.history[k] = d.history[k].map((p) => (delta ? { ...p, ts: p.ts + delta } : p));
+    });
+    S.tasks = d.tasks.map((t) => {
+      const t2 = { ...t, log: [], _series: [] };
+      for (const k of ["created_at", "started_at", "finished_at"]) if (t2[k]) t2[k] += delta;
+      t2.log = (t.log || []).map((l) => (delta ? shiftLogTs(l, delta) : l));
+      t2._series = (t._series || []).map((p) => (delta ? { ...p, ts: p.ts + delta } : p));
+      t2._lastLogSecs = null; // tick() lazily initializes from started_at
+      return t2;
+    });
+    return true;
+  }
+
+  if (!loadSeedData()) {
+    seed();
+  }
 
   /* Deterministic synthetic in-window series for finished/seed tasks. */
   function genWindowSeries(gpu, from, to, step, p) {
